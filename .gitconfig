@@ -1,0 +1,28 @@
+# This is Git's per-user configuration file.
+#[user]
+# Please adapt and uncomment the following lines:
+#	name = Ivan Pesin
+#	email = ivan@localhost
+#	Set these on per-repo basis:
+#	   git config user.name "Ivan Pesin"
+#	   git config user.email "ipesin@localhost"
+
+[alias]
+	co = checkout
+	br = branch
+	ci = commit
+	st = status -s
+	ls = log --pretty=format:\"%C(red)%h\\ %C(yellow)[%ad]%Cgreen%d\\ %Creset%s%C(bold blue)\\ <%an>\" --decorate --date=relative
+	ll = log --pretty=format:\"%C(red)%h\\ %C(yellow)%ci%Cgreen%d\\ %Creset%s%C(bold blue)\\ <%cn>\" --decorate --numstat
+	ld = log --pretty=format:\"%C(red)%h\\ %C(yellow)%ad%Cgreen%d\\ %Creset%s%C(bold blue)\\ <%cn>\" --decorate --date=short --graph
+	lg  = log --graph --pretty=format:'%Cred%h%Creset -%C(green)%d%Creset %s %C(yellow)(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
+	lgg = log --graph --pretty=format:'%Cred%h%Creset -%C(green)%d%Creset %s %C(yellow)(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative --name-only
+	
+	# Amend the currently staged files to the latest commit
+	amend = commit --amend --reuse-message=HEAD
+
+	# List contributors with number of commits
+	contributors = shortlog -sn
+
+[push]
+	default = simple
