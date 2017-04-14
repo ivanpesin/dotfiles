@@ -1,0 +1,80 @@
+#!/bin/bash
+
+# --- ensure secure permissions on backup files and correct PATH
+umask 0077
+PATH="/bin:/usr/bin"
+
+#
+BACKUPDIR="/var/dumps"
+ERROR_LOG=$(/usr/bin/mktemp -ut tmp.backups.XXXXXXXX)
+ERROR_EMAIL="root@localhost"
+ID="$(date +%Y%m%d-%H%M%S)"
+HOSTNAME=$(hostname)
+S3_BUCKET="s3://s3bucket_name"
+
+# --- select backup type:
+#       if it's sunday => weekly
+#       if it's first of month => monthly
+PREFIX="backup-daily"
+[ "$(date +%u)" -eq "0" -o "$(date +%u)" -eq "7" ] && PREFIX="backup-weekly"
+[ "$(date +%d)" -eq "01" ] && PREFIX="backup-monthly"
+
+echo "Running backup on: $HOSTNAME"
+echo "Backup type : $PREFIX"
+echo "Backup ID   : $ID"
+echo "----------------------------------------"
+
+# --- backup various stuff from FS
+#       /etc & /usr/local
+DIRLIST="/etc /usr/local/bin /usr/local/sbin"
+echo -n "Backing up $DIRLIST ... "
+/bin/tar cjf ${BACKUPDIR}/${PREFIX}-conf-${ID}.tar.bz2 $DIRLIST 2> >(grep -v 'tar: Removing leading' >&2)
+[ $? -eq 0 ] && echo "done" || \
+    { echo "failed"; echo "FAILED: $DIRLIST" >> "$ERROR_LOG"; }
+
+# --- gitlab data
+echo -n "Backing up GitLab data ... "
+/usr/bin/gitlab-rake gitlab:backup:create > "${BACKUPDIR}/${PREFIX}-gitlab-${ID}.log"
+if [ $? -eq 0 ]; then
+    echo "done"
+    GITLAB_BK=$(ls /var/opt/gitlab/backups/ | tail -1)
+    cp /var/opt/gitlab/backups/$GITLAB_BK ${BACKUPDIR}/${PREFIX}-gitlab-${ID}-${GITLAB_BK}
+else
+    echo "failed"; echo "FAILED: GitLab data, see log file" >> "$ERROR_LOG"
+fi
+
+# --- sync backup directory to Amazon S3 (s3cmd must be installed and configured)
+#/usr/bin/s3cmd -c /root/.s3cfg --acl-private --delete-removed \
+echo "----------------------------------------"
+echo -n "Syncing ${BACKUPDIR} --> ${S3_BUCKET} ... "
+/usr/bin/s3cmd -c /root/.s3cfg --delete-removed -q \
+    sync ${BACKUPDIR} ${S3_BUCKET}
+if [ $? -eq 0 ]; then
+    echo "done"
+else
+    echo "failed"
+    echo "FAILED: s3 sync ${BACKUPDIR} --> ${S3_BUCKET}" >> "$ERROR_LOG"
+fi
+
+# --- check backup file is larger than 1K
+for f in $(ls $BACKUPDIR/*${ID}*); do
+    [ $(stat -c "%s" $f) -lt 1000 ] && echo "Suspiciously small size: $f" | tee -a "$ERROR_LOG"
+done
+
+# --- report errors if any
+if [ -f $ERROR_LOG ]; then
+    echo "ERROR: Backup has failed!"
+    cat $ERROR_LOG
+    echo "Exiting without cleanup."
+    cat $ERROR_LOG | mail -s "ERROR: backup failed" $ERROR_EMAIL
+    rm -f $ERROR_LOG
+    exit 1
+fi
+
+# --- Cleanup old backups ---
+echo -n "Cleaning up old backups ... "
+/usr/bin/find "$BACKUPDIR" -name "backup-monthly-*.bz2" -mtime +95 -exec rm -f {} \;
+/usr/bin/find "$BACKUPDIR" -name "backup-weekly-*.bz2" -mtime +50 -exec rm -f {} \;
+/usr/bin/find "$BACKUPDIR" -name "backup-daily-*.bz2" -mtime +7 -exec rm -f {} \;
+echo "done"
+echo "Backup completed"
