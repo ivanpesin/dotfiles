@@ -1,0 +1,27 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\SimonTatham\PuTTY\Sessions\Zenburn%20iv]
+"Font"="Monaco"
+"FontHeight"=dword:0000000c
+"Colour0"="220,220,204"
+"Colour1"="240,240,230"
+"Colour2"="63,63,63"
+"Colour3"="77,77,77"
+"Colour4"="0,13,24"
+"Colour5"="143,175,159"
+"Colour6"="30,35,32"
+"Colour7"="112,144,128"
+"Colour8"="204,147,147"
+"Colour9"="220,163,163"
+"Colour10"="96,180,138"
+"Colour11"="156,195,162"
+"Colour12"="223,175,143"
+"Colour13"="240,223,175"
+"Colour14"="80,99,131"
+"Colour15"="148,191,243"
+"Colour16"="220,140,195"
+"Colour17"="241,131,226"
+"Colour18"="118,199,204"
+"Colour19"="147,224,227"
+"Colour20"="220,220,204"
+"Colour21"="255,255,255"
