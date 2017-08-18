@@ -12,12 +12,9 @@
 	br = branch
 	ci = commit
 	st = status -s
-	ls = log --pretty=format:\"%C(red)%h\\ %C(yellow)[%ad]%Cgreen%d\\ %Creset%s%C(bold blue)\\ <%an>\" --decorate --date=relative
-	ll = log --pretty=format:\"%C(red)%h\\ %C(yellow)%ci%Cgreen%d\\ %Creset%s%C(bold blue)\\ <%cn>\" --decorate --numstat
-	ld = log --pretty=format:\"%C(red)%h\\ %C(yellow)%ad%Cgreen%d\\ %Creset%s%C(bold blue)\\ <%cn>\" --decorate --date=short --graph
-	lg  = log --graph --pretty=format:'%Cred%h%Creset -%C(green)%d%Creset %s %C(yellow)(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
-	lgg = log --graph --pretty=format:'%Cred%h%Creset -%C(green)%d%Creset %s %C(yellow)(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative --name-only
-	
+        ls = log --pretty='format:%C(yellow)%h %C(cyan)%ad%Cred%d %Creset%s%C(bold blue) [%cn]' --decorate --date=relative
+        ll = log --pretty='format:%C(yellow)%h %C(cyan)%ci%Cred%d %Creset%s%C(bold blue) [%cn]' --decorate --numstat
+        lg = log --graph --pretty=format:'%C(yellow)%h%Creset -%C(red)%d%Creset %s %C(cyan)(%cr) %C(bold blue)[%cn]%Creset' --abbrev-commit --date=relative
 	# Amend the currently staged files to the latest commit
 	amend = commit --amend --reuse-message=HEAD
 
