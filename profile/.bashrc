@@ -16,11 +16,6 @@ HISTCONTROL=ignoreboth
 HISTTIMEFORMAT='%F %T %z '
 # store history after each command
 PROMPT_COMMAND='history -a'
-
-# Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
-export PATH="$PATH:$HOME/.rvm/bin"
-
-
 export PS1="[\u@\h \W]\\$ "
 
 powerline() {
