@@ -5,6 +5,11 @@ if [ "$PS1" ]; then
 
   PS1="\[$TAG_COLOR\]$TAG\[\e[0m\][\u@\h \W]\\$ "
 
+  # append history file instead overwriting
+  # update LINES/COLUMNS if necessary
+  shopt -s histappend checkwinsize
+
+  # keep lots of history
   HISTFILESIZE=1000000
   HISTSIZE=100000
   # keep timestamps
