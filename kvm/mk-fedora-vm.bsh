@@ -1,0 +1,93 @@
+#!/bin/bash
+
+usage() {
+        cat <<EOF
+mk-fedora-vm v1.0 -- create fedora cloud-init KVM VM
+
+Usage:
+        mk-fedora-vm.bsh -n <vm_name>
+EOF
+}
+
+log() {
+        echo "$(date -Is): $1"
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+                -n) VM_NAME="$2"; shift;;
+    -p) VM_PASS="$2"; shift;;
+                -m) VM_MEM="$2"; shift;;
+    -c) VM_CPU="$2"; shift;;
+        esac
+        shift
+done
+
+[ -z "$VM_NAME" ] && { usage; exit 1; }
+[ -z "$VM_PASS" ] && VM_PASS="TODOsetPasswordHere"
+[ -z "$VM_MEM" ] && VM_MEM=512
+[ -z "$VM_CPU" ] && VM_CPU=1
+IMG_DIR="/var/lib/libvirt/images/"
+ISO_DIR="/opt/ISOs"
+ISO="$ISO_DIR/Fedora-Cloud-Base-27-1.6.x86_64.qcow2"
+
+TMP=$(mktemp -d)
+chmod 750 "$TMP"
+chgrp qemu "$TMP"
+
+log "Generating user-data..."
+cat > $TMP/user-data <<EOF
+#cloud-config
+
+# Hostname management
+preserve_hostname: False
+hostname: $VM_NAME
+fqdn: $VM_NAME.devenv
+
+password: $VM_PASS
+chpasswd: {expire: False}
+ssh_pwauth: True
+
+timezone: Etc/UTC
+EOF
+
+log "Generating meta-data..."
+cat > $TMP/meta-data <<EOF
+instance-id: $VM_NAME
+local-hostname: $VM_NAME
+EOF
+
+log "Generating cloudinit ISO image..."
+cd $TMP
+mkisofs -o $VM_NAME-cidata.iso -V cidata -J -r user-data meta-data
+cd -
+
+log "Creating VM disk..."
+qemu-img create -f qcow2 -b $ISO $IMG_DIR/$VM_NAME.qcow2
+
+log "Creating VM ..."
+virt-install --import --name $VM_NAME \
+        --memory $VM_MEM --vcpus $VM_CPU \
+        --disk $IMG_DIR/$VM_NAME.qcow2,format=qcow2,bus=virtio \
+        --disk $TMP/$VM_NAME-cidata.iso,device=cdrom \
+        --network bridge=virbr0,model=virtio \
+        --os-type=linux \
+        --os-variant=fedora25 \
+        --graphics=none \
+  --noautoconsole
+
+log "Waiting for provisioning to complete ..."
+MAC=$(virsh dumpxml $VM_NAME | awk -F\' '/mac address/ {print $2}')
+while : ; do
+        IP=$(grep -B1 $MAC /var/lib/libvirt/dnsmasq/virbr0.status | \
+                                        awk -F\" 'NR==1{print $4}')
+  [ "$IP" != "" ] && break
+  sleep 1
+done
+
+log "Cleaning up cloud-init..."
+virsh change-media $VM_NAME hda --eject --config
+
+[[ "$TMP" = /tmp/* ]] && rm -rf "$TMP"
+
+log "DONE: ssh fedora@$IP"
