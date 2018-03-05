@@ -13,6 +13,12 @@ log() {
         echo "$(date -Is): $1"
 }
 
+#
+# --- main
+#
+
+IMG_DIR="/var/lib/libvirt/images/"
+
 while [ $# -gt 0 ]; do
   case "$1" in
     -n) VM_NAME="$2"; shift;;
@@ -25,12 +31,14 @@ while [ $# -gt 0 ]; do
 done
 
 [ -z "$VM_NAME" ] && { usage; exit 1; }
-[ -z "$VM_PASS" ] && VM_PASS="TODOsetPasswordHere"
+[ -z "$VM_PASS" ] && {
+        which -s pwgen && \
+                VM_PASS="$(pwgen -1)" || \
+                VM_PASS="cloud-init"
+}
 [ -z "$VM_MEM" ] && VM_MEM=512
 [ -z "$VM_CPU" ] && VM_CPU=1
-IMG_DIR="/var/lib/libvirt/images/"
-ISO_DIR="/opt/ISOs"
-[ -z "$ISO" ] && ISO="$ISO_DIR/Fedora-Cloud-Base-27-1.6.x86_64.qcow2"
+[ -z "$ISO" ] && { usage; exit 1; }
 
 if [ ! -f "$ISO" ]; then
   log "ERROR: No ISO file: $ISO"
@@ -50,7 +58,7 @@ preserve_hostname: False
 hostname: $VM_NAME
 fqdn: $VM_NAME.devenv
 
-username: cloud
+user: cloud
 password: $VM_PASS
 chpasswd: {expire: False}
 ssh_pwauth: True
@@ -67,10 +75,20 @@ EOF
 log "Generating cloudinit ISO image..."
 cd $TMP
 mkisofs -o $VM_NAME-cidata.iso -V cidata -J -r user-data meta-data
+err=$?
 cd -
+[ $err -ne 0 ] && { 
+        log "ERROR: Failed to generate cloud-init data ISO image"
+        exit 1
+}
 
 log "Creating VM disk..."
 qemu-img create -f qcow2 -b $ISO $IMG_DIR/$VM_NAME.qcow2
+err=$?
+[ $err -ne 0 ] && { 
+        log "ERROR: Failed to create VM disk"
+        exit 1
+}
 
 log "Creating VM ..."
 virt-install --import --name $VM_NAME \
@@ -97,4 +115,5 @@ virsh change-media $VM_NAME hda --eject --config
 
 [[ "$TMP" = /tmp/* ]] && rm -rf "$TMP"
 
-log "DONE: ssh fedora@$IP"
+log "PASS: $VM_PASS"
+log "DONE: ssh cloud@$IP"
