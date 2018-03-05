@@ -5,7 +5,7 @@ usage() {
 mk-fedora-vm v1.0 -- create fedora cloud-init KVM VM
 
 Usage:
-        mk-fedora-vm.bsh -n <vm_name>
+        mk-fedora-vm.bsh -n <vm-name> -c <cpus> -m <mem> -p <vm-pass>  [ -i <iso-image> ]
 EOF
 }
 
@@ -15,12 +15,13 @@ log() {
 
 while [ $# -gt 0 ]; do
   case "$1" in
-                -n) VM_NAME="$2"; shift;;
+    -n) VM_NAME="$2"; shift;;
     -p) VM_PASS="$2"; shift;;
-                -m) VM_MEM="$2"; shift;;
+    -m) VM_MEM="$2"; shift;;
     -c) VM_CPU="$2"; shift;;
-        esac
-        shift
+    -i) ISO="$2"; shift;;
+   esac
+   shift
 done
 
 [ -z "$VM_NAME" ] && { usage; exit 1; }
@@ -29,7 +30,12 @@ done
 [ -z "$VM_CPU" ] && VM_CPU=1
 IMG_DIR="/var/lib/libvirt/images/"
 ISO_DIR="/opt/ISOs"
-ISO="$ISO_DIR/Fedora-Cloud-Base-27-1.6.x86_64.qcow2"
+[ -z "$ISO" ] && ISO="$ISO_DIR/Fedora-Cloud-Base-27-1.6.x86_64.qcow2"
+
+if [ ! -f "$ISO" ]; then
+  log "ERROR: No ISO file: $ISO"
+  exit 1
+fi
 
 TMP=$(mktemp -d)
 chmod 750 "$TMP"
@@ -44,6 +50,7 @@ preserve_hostname: False
 hostname: $VM_NAME
 fqdn: $VM_NAME.devenv
 
+username: cloud
 password: $VM_PASS
 chpasswd: {expire: False}
 ssh_pwauth: True
@@ -74,7 +81,7 @@ virt-install --import --name $VM_NAME \
         --os-type=linux \
         --os-variant=fedora25 \
         --graphics=none \
-  --noautoconsole
+        --noautoconsole
 
 log "Waiting for provisioning to complete ..."
 MAC=$(virsh dumpxml $VM_NAME | awk -F\' '/mac address/ {print $2}')
