@@ -2,10 +2,10 @@
 
 usage() {
         cat <<EOF
-mk-fedora-vm v1.0 -- create fedora cloud-init KVM VM
+mk-cloudinit-vm v$VERSION -- create fedora/centos cloud-init KVM VMs.
 
 Usage:
-        mk-fedora-vm.bsh -n <vm-name> -c <cpus> -m <mem> -p <vm-pass>  [ -i <iso-image> ]
+        mk-cloudinit-vm.bsh -n <vm-name> -i <iso-image> [-c <cpus>][-m <mem>][-p <vm-pass>]
 EOF
 }
 
@@ -17,6 +17,7 @@ log() {
 # --- main
 #
 
+VERSION="1.1"
 IMG_DIR="/var/lib/libvirt/images/"
 
 while [ $# -gt 0 ]; do
@@ -26,6 +27,7 @@ while [ $# -gt 0 ]; do
     -m) VM_MEM="$2"; shift;;
     -c) VM_CPU="$2"; shift;;
     -i) ISO="$2"; shift;;
+    -l) ls $IMG_DIR/*[Cc]loud*qcow2; exit 0;;
    esac
    shift
 done
@@ -44,6 +46,9 @@ if [ ! -f "$ISO" ]; then
   log "ERROR: No ISO file: $ISO"
   exit 1
 fi
+
+OS_VARIANT="fedora27"
+[ "$ISO" = CentOS-* ] && OS_VARIANT=centos7
 
 TMP=$(mktemp -d)
 chmod 750 "$TMP"
@@ -97,7 +102,7 @@ virt-install --import --name $VM_NAME \
         --disk $TMP/$VM_NAME-cidata.iso,device=cdrom \
         --network bridge=virbr0,model=virtio \
         --os-type=linux \
-        --os-variant=fedora25 \
+        --os-variant=$OS_VARIANT \
         --graphics=none \
         --noautoconsole
 
