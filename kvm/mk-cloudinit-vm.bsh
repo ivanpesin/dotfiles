@@ -71,7 +71,7 @@ ssh_pwauth: True
 timezone: Etc/UTC
 
 runcmd:
-- touch /etc/cloud/cloud-init.disable
+- touch /etc/cloud/cloud-init.disabled
 EOF
 
 log "Generating meta-data..."
