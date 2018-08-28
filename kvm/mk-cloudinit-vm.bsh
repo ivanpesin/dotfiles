@@ -69,6 +69,9 @@ chpasswd: {expire: False}
 ssh_pwauth: True
 
 timezone: Etc/UTC
+
+runcmd:
+- touch /etc/cloud/cloud-init.disable
 EOF
 
 log "Generating meta-data..."
@@ -117,10 +120,11 @@ done
 
 log "Cleaning up cloud-init..."
 virsh change-media $VM_NAME hda --eject
+virsh change-media $VM_NAME hda --eject --config
 
 if [[ "$TMP" = /tmp/* ]]; then
     log "Removing cloud-init pool: $(basename $TMP)"
-    virsh pool-stop $(basename $TMP)
+    virsh pool-destroy $(basename $TMP)
     virsh pool-undefine $(basename $TMP)
     rm -rf "$TMP"
 fi
