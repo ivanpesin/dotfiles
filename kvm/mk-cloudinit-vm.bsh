@@ -18,7 +18,7 @@ log() {
 #
 
 VERSION="1.1"
-IMG_DIR="/var/lib/libvirt/images/"
+IMG_DIR="/var/lib/libvirt/images"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -27,14 +27,14 @@ while [ $# -gt 0 ]; do
     -m) VM_MEM="$2"; shift;;
     -c) VM_CPU="$2"; shift;;
     -i) ISO="$2"; shift;;
-    -l) ls $IMG_DIR/*[Cc]loud*qcow2; exit 0;;
+    -l) ls -1 $IMG_DIR/*[Cc]loud*qcow2; exit 0;;
    esac
    shift
 done
 
 [ -z "$VM_NAME" ] && { usage; exit 1; }
 [ -z "$VM_PASS" ] && {
-        which -s pwgen && \
+        which pwgen >/dev/null && \
                 VM_PASS="$(pwgen -1)" || \
                 VM_PASS="cloud-init"
 }
