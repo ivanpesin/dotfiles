@@ -1,0 +1,57 @@
+#!/usr/bin/expect
+#
+# info: Expect script which can execute commands on multiple servers via SSH
+#
+# author: Martin Cmelik (cm3l1k1) - www.security-portal.cz
+#
+# dependency: file "hosts.list" in same location (each server on newline)
+#             /usr/bin/expect executable
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# license: This software is licensed under the Creative Commons
+# Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+# To view this license visit http://creativecommons.org/licenses/by-nc-sa/3.0/
+#
+
+set timeout 60
+set prompt "(%|#|\\$|%\]) $"
+set fid [open ./hosts.list r]
+set contents [read -nonewline $fid]
+close $fid
+stty echo
+send_user "\nUsername for SSH connection: "
+expect_user -re "(.*)\n" {set sshname $expect_out(1,string)}
+send_user "\nPassword for SSH user: "
+stty -echo
+expect_user -re "(.*)\n" {set sshpassword $expect_out(1,string)}
+stty echo
+foreach host [split $contents "\n"] {
+spawn ssh -o StrictHostKeyChecking=no $sshname@$host
+expect {
+  "assword:" { send -- "$sshpassword\r"
+  }
+  "you sure you want to continue connecting" {
+  send -- "yes\r"
+  expect "assword:"
+  send -- "$sshpassword\r"
+  }
+}
+expect -re "$prompt"
+send -- "sudo su -\r"
+expect {
+  "assword:" { send -- "$sshpassword\r"
+  expect -re "$prompt"
+  }
+  -re "$prompt"
+}
+# execute commands
+send -- "sleep 5\r"
+expect -re "$prompt"
+send -- "echo All Done\r"
+expect -re "$prompt"
+send -- "exit\r"
+
+}
