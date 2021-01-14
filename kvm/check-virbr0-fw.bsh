@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# check virbr0 device exists
+/sbin/ip l l dev virbr0 >/dev/null 2>&1
+[[ $? -ne 0 ]] && {
+  echo "No virbr0, exiting ...";
+  exit 0;
+}
+
+# get iptables config for FORWARD chain
+IPT=$(iptables -w 2 -nvL FORWARD)
+
+# check that libvirt rules exist
+echo "$IPT" | grep -q  ' ACCEPT .* virbr0 .* 192.168.[0-9]\+\.[0-9]/[0-9][0-9] .* ctstate RELATED,ESTABLISHED *$'
+[[ $? -ne 0 ]] && {
+  echo "libvirtd firewall rules are absent, exiting ...";
+  exit 0;
+}
+
+# check first rule in FORWARD chain is per-host ACCEPT
+echo "$IPT" | head -3 | grep -q ' ACCEPT .* virbr0 .* 192.168.[0-9]\+\.[/0-9]\+ *$'
+rc=$?
+
+if [ $rc -eq 0 ]; then
+  echo "OK: Rules are in place."
+else
+  echo "FAIL: Rules are missing!"
+fi
+
+if [ "$1" = "reload" ]; then
+  echo "Attempting to reload firewall rules"
+  /etc/libvirt/hooks/network - stopped
+  /etc/libvirt/hooks/network - started
+  exit 0
+fi
+
+# rc=0 means correct rules exist, rc!=0 -- missing rules
+exit $rc
