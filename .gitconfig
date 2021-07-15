@@ -8,18 +8,18 @@
 #	   git config user.email "ipesin@localhost"
 
 [alias]
-	co = checkout
-	br = branch
-	ci = commit
-	st = status -s
+        co = checkout
+        br = branch
+        ci = commit
+        st = status -s
         ls = log --pretty='format:%C(yellow)%h %C(cyan)%ad%Cred%d %Creset%s%C(bold blue) [%cn]' --decorate --date=relative
         ll = log --pretty='format:%C(yellow)%h %C(cyan)%ci%Cred%d %Creset%s%C(bold blue) [%cn]' --decorate --numstat
         lg = log --graph --pretty=format:'%C(yellow)%h%Creset -%C(red)%d%Creset %s %C(cyan)(%cr) %C(bold blue)[%cn]%Creset' --abbrev-commit --date=relative
-	# Amend the currently staged files to the latest commit
-	amend = commit --amend --reuse-message=HEAD
+        # Amend the currently staged files to the latest commit
+        amend = commit --amend --reuse-message=HEAD
 
-	# List contributors with number of commits
-	contributors = shortlog -sn
+        # List contributors with number of commits
+        contributors = shortlog -sn
 
 [push]
-	default = simple
+        default = current
