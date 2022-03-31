@@ -23,3 +23,8 @@
 
 [push]
         default = current
+
+[color "diff"]
+	whitespace = red reverse
+[diff]
+	wsErrorHighlight = all
