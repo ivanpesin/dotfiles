@@ -1,9 +1,24 @@
 if [ "$PS1" ]; then
 
-  [ -f "/etc/systag.name" ]  && TAG="[$(cat /etc/systag.name)]"
-  [ -f "/etc/systag.color" ] && TAG_COLOR="$(cat /etc/systag.color)"
+  [ -f "/etc/envtag.name" ]  && TAG="[$(cat /etc/envtag.name)]"
+  [ -f "/etc/envtag.color" ] && TAG_COLOR="$(cat /etc/envtag.color)"
 
-  PS1="\[$TAG_COLOR\]$TAG\[\e[0m\][\u@\h \W]\\$ "
+  _PS1_C_RED="\x01$(tput setaf 1)\x02"
+  _PS1_C_GREEN="\x01$(tput setaf 2)\x02"
+  _PS1_C_RESET="\x01$(tput sgr0)\x02"
+
+  _show_rc_in_ps1() {
+    local err=$?
+    if [ $err -eq 0 ]; then
+      echo -ne "${_PS1_C_GREEN}"
+    else
+      echo -ne "${_PS1_C_RED}"
+    fi
+    echo -e "rc:$err${_PS1_C_RESET}"
+    return $err
+  }
+
+  PS1="[\$(_show_rc_in_ps1) \u@\h \W]\\$ "
 
   # append history file instead overwriting
   # update LINES/COLUMNS if necessary
@@ -16,5 +31,5 @@ if [ "$PS1" ]; then
   HISTTIMEFORMAT='%F %T %z '
   # store history after each command
   PROMPT_COMMAND='history -a'
-  
+
 fi
