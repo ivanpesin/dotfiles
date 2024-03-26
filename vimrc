@@ -6,4 +6,15 @@ syntax on
 "  %    :  saves and restores the buffer list
 "  n... :  where to save the viminfo files
 set viminfo='10,\"100,:20,%,n~/.viminfo
-set nocp nu et ci pi sts=4 sw=4 ts=4
+
+filetype indent on
+
+set nofoldenable foldmethod=indent
+
+set nocompatible
+set backspace=indent,eol,start
+set nu ruler showcmd
+set hidden
+set ai ci pi cin cinkeys-=0#
+set et sw=2 sts=2 ts=2
+set list listchars=tab:»·,trail:·,extends:…,precedes:…
