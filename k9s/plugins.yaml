@@ -1,0 +1,113 @@
+plugins:
+  log-less:
+    shortCut: Shift-L
+    override: false
+    confirm: false
+    description: "logs|less"
+    scopes:
+    - pods
+    command: bash
+    background: false
+    args:
+    - -c
+    - '"$@" | less -SR'
+    - dummy-arg
+    - kubectl
+    - logs
+    - $NAME
+    - -n
+    - $NAMESPACE
+    - --context
+    - $CONTEXT
+    - --kubeconfig
+    - $KUBECONFIG
+    - --timestamps
+  log-less-container:
+    shortCut: Shift-L
+    description: "logs|less"
+    scopes:
+    - containers
+    command: bash
+    background: false
+    args:
+    - -c
+    - '"$@" | less -SR'
+    - dummy-arg
+    - kubectl
+    - logs
+    - -c
+    - $NAME
+    - $POD
+    - -n
+    - $NAMESPACE
+    - --context
+    - $CONTEXT
+    - --kubeconfig
+    - $KUBECONFIG
+    - --timestamps
+  log-less-job:
+    shortCut: Shift-L
+    override: false
+    confirm: false
+    description: "logs|less"
+    scopes:
+    - jobs
+    command: bash
+    background: false
+    args:
+    - -c
+    - '"$@" | less -SR'
+    - dummy-arg
+    - kubectl
+    - logs
+    - job.batch/$NAME
+    - -n
+    - $NAMESPACE
+    - --context
+    - $CONTEXT
+    - --kubeconfig
+    - $KUBECONFIG
+    - --timestamps
+  probe-http-check:
+    shortCut: Shift-H
+    description: Healtcheck output
+    command: sh
+    background: false
+    scopes:
+      - po
+    args:
+      - -c
+      - |
+        # 1. Get the probe details from the Pod's YAML
+        PROBE_PATH=$(kubectl --context $CONTEXT get pod $NAME -n $NAMESPACE -o json | jq -r '.spec.containers[0].livenessProbe.httpGet.path')
+        PROBE_PORT=$(kubectl --context $CONTEXT get pod $NAME -n $NAMESPACE -o json | jq -r '.spec.containers[0].livenessProbe.httpGet.port')
+
+        if [ "$PROBE_PATH" = "null" ] || [ "$PROBE_PORT" = "null" ]; then
+          echo "ERROR: HTTP GET liveness probe not found on the first container of Pod $NAME." | less
+          exit 1
+        fi
+
+        OUTPUT=/tmp/k9s-health.$$
+        LOCAL_PORT=8080 # Or any available local port
+
+        {
+          # 2. Start port-forwarding in the background
+          kubectl --context $CONTEXT port-forward $NAME -n $NAMESPACE $LOCAL_PORT:$PROBE_PORT &
+          PORT_FORWARD_PID=$!
+
+          # Give the port-forward process a moment to start
+          sleep 2
+
+          # 3. Request the status and display the output
+          echo "--- Testing Liveness Probe: http://127.0.0.1:$LOCAL_PORT$PROBE_PATH ---"
+          curl -si --max-time 5 http://127.0.0.1:$LOCAL_PORT$PROBE_PATH | tee $OUTPUT
+          echo
+          echo "--- Prettyfied JSON if any:"
+          cat "$OUTPUT" | jq -R 'fromjson? | . '
+
+          # 4. Clean up by killing the port-forward process
+          rm -f "$OUTPUT"
+          kill $PORT_FORWARD_PID
+          echo
+          echo "--- Port-forward stopped (PID $PORT_FORWARD_PID) ---"
+        } 2>&1 | less
