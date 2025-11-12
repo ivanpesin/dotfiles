@@ -1,0 +1,16 @@
+views:
+    v1/nodes:
+        sortColumn: ROLE:asc
+        columns:
+            - AGE
+            - IP:.metadata.annotations.alpha\.kubernetes\.io/provided-node-ip
+            - ROLE:.metadata.labels.role
+            - INSTANCE:.metadata.labels.node\.kubernetes\.io/instance-type
+            - NAME|H
+    v1/pods:
+        sortColumn: NAME:asc
+        columns:
+            - AGE
+            - NAME
+            - IMG-VERS:.spec.containers[0].image|split(":")|.[-1]|.[-10:]|R # => Grab the main container image name and pull the image version
+                                                                            # => out into the `IMG-VERSION` right aligned column
